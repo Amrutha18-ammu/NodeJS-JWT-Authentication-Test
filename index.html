@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing the jwt</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.3.7/dist/css/bootstrap.min.css"
+        integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js"
+        integrity="sha512-emSwuKiMyYedRwflbZB2ghzX8Cw8fmNVgZ6yQNNXXagFzFOaQmbvQ1vmDkddHjm5AITcBIZfC7k4ShQSjgPAmQ=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+</head>
+
+<body onload="onLoad()">
+    <div class="container-fluid">
+
+        <h1 class="row">Login</h1>
+
+        <main>
+            <div id="login" >
+                <div class="row">
+                    <label for="username">Username</label>
+                    <input type="text" name="username" id="username">
+                </div>
+    
+                <div class="row">
+                    <label for="password">Password</label>
+                    <input type="password" name="password" id="password">
+                </div>
+    
+                <div>
+                    <button onclick="login()">Login</button>
+                    <button onclick="getDashboard()">Get Dashboard</button>
+                </div>
+            </div>
+
+        </main>
+
+    </div>
+    <script>
+        var token = '';
+        function login() {
+            const data = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+            };
+            axios.post('/api/login', data)
+                .then(res => {
+                    console.log(res);
+                    document.getElementById('username').value = '';
+                    document.getElementById('password').value = '';
+                    if (res && res.data && res.data.success) {
+                         const token = res.data.token;
+                         localStorage.setItem('jwt', token);
+                        getDashboard();
+                    }
+                });
+        }
+
+        function getDashboard() {
+            history.pushState(null, null, "dashboard");
+           const token = localStorage.getItem('jwt');
+            axios.get('/api/dashboard', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }).then(res => {
+                if (res && res.data && res.data.success) {
+                    document.querySelector('h1.row').innerHTML = 'Dashboard';
+                    document.getElementById("login").remove()
+                    const content = document.createElement('div')
+                    content.innerHTML = res.data.myContent;
+                    document.querySelector('main').appendChild(content)
+                    const button = document.createElement('button')
+                    button.innerText = 'Settings'
+                    button.id = 'mainButton'
+                    button.addEventListener('click', () => {
+                        getSettings()
+                    })
+                    document.querySelector('main').appendChild(button)
+                }
+            }).catch(function (error) { 
+                handleError(error)
+            })
+        }
+
+        function onLoad() { 
+            const token = localStorage.getItem('jwt');
+            if(token) {
+                getDashboard()
+            }
+        }
+
+        function handleError(error) { 
+           console.log(error)
+           console.log(error.response)
+           if (error.response && error.response && error.response.status == 401) {
+            alert("Please login to access")
+            localStorage.removeItem('jwt')
+           }
+           document.location.href = "/";
+        }
+
+
+        function getSettings() {
+           history.pushState(null, null, "settings");
+           const token = localStorage.getItem('jwt');
+            axios.get('/api/settings', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            }).then(res => {
+                if (res && res.data && res.data.success) {
+                    document.querySelector('h1.row').innerHTML = 'settings';
+                    document.querySelector('main').innerHTML = res.data.myContent;
+                }
+            }).catch(function (error) { 
+                handleError(error)
+            })
+        }
+    </script>
+</body>
+
+</html>
